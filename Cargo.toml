@@ -1,0 +1,24 @@
+[package]
+name = "token-budgets-rig"
+version = "0.1.0"
+edition = "2021"
+description = "N=1 deployment of the affine-typed token-budgets crate into the Rig Rust LLM-agent framework"
+license = "MIT OR Apache-2.0"
+
+# NOTE: token-budgets is edition 2024, so this needs rustc >= 1.85 (Feb 2025).
+[dependencies]
+token-budgets = { git = "https://github.com/sajjadanwar0/token-budgets" }
+anyhow = "1"
+trybuild = "1.0.116"
+
+# Rig and the async runtime are only needed by the *live* example, not the
+# library or the offline test, so they live in dev-dependencies.
+[dev-dependencies]
+rig-core = "=0.37.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+trybuild = "1.0"
+
+[features]
+default = []
+# Swap the byte-length estimator for token-budgets' real tokenizer estimator.
+tiktoken = ["token-budgets/tiktoken"]

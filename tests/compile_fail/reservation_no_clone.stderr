@@ -1,0 +1,5 @@
+error[E0599]: no method named `clone` found for struct `Reservation` in the current scope
+ --> tests/compile_fail/reservation_no_clone.rs:8:18
+  |
+8 |     let _dup = r.clone(); // Reservation: !Clone  -> compile error
+  |                  ^^^^^ method not found in `Reservation`
