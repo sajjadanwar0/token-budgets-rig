@@ -72,8 +72,9 @@ async fn main() -> anyhow::Result<()> {
             let (mut served, mut refused, mut spent) = (0usize, 0usize, 0u64);
             for t in 0..TASKS_PER_SUBAGENT {
                 let task = format!("[sub {sub}] step {t}: name one risk of unbounded agent retries.");
+                
                 let res = prompt_budgeted_metered(&pool, &est, &pricing, MAX_OUTPUT_TOK, &task, |p| async {
-                    // AUTOAGENTS: run the agent on the prompt, return its text.
+
                     let out: WorkerOutput = agent
                         .agent
                         .run(Task::new(p))
@@ -88,6 +89,7 @@ async fn main() -> anyhow::Result<()> {
                     Err(_) => {}
                 }
             }
+            
             Ok::<_, anyhow::Error>((sub, served, refused, spent))
         }));
     }
@@ -100,11 +102,14 @@ async fn main() -> anyhow::Result<()> {
         println!("  agent {sub}: served={served} refused={refused} spent=${:.5}", spent as f64 / 1e8);
     }
 
+    
     let spent_uc = cap - pool.available();
+    
     println!("--- AutoAgents fan-out: {N_SUBAGENTS} concurrent agents, ONE BudgetPool ---");
     println!("served={tot_served} refused={tot_refused} elapsed={:?}", start.elapsed());
     println!("GLOBAL spend = ${:.5}  cap = ${:.2}", spent_uc as f64 / 1e8, SESSION_CAP_USD);
     println!("pool invariant holds: {}", pool.invariant_holds());
     println!("CAP RESPECTED ACROSS ALL AGENTS: {}", spent_uc <= cap);
+    
     Ok(())
 }

@@ -1,14 +1,6 @@
-//! Extra Rig workload (breadth): a GROWING-CONTEXT multi-turn conversation.
-//! Unlike delegation_demo's uniform tasks, each turn re-sends the accumulated
-//! transcript, so per-call cost RISES turn over turn. This stresses the cap
-//! under a non-uniform cost shape: reservations grow until one is refused.
-//!
-//!   ANTHROPIC_API_KEY=sk-ant-... cargo run --example workload_multiturn
-
 use std::time::Instant;
 use token_budgets::BudgetPool;
 use token_budgets_rig::{default_estimator, prompt_budgeted_metered, usd_to_uc, BudgetedError, Pricing};
-
 use rig_core::client::{CompletionClient, ProviderClient};
 use rig_core::completion::Prompt;
 use rig_core::providers::anthropic;
@@ -38,8 +30,9 @@ async fn main() -> anyhow::Result<()> {
 
     for turn in 0..N_TURNS {
         transcript.push_str(&format!("\nUser: Question {turn}: name one risk of unbounded agent retries.\n"));
-        let prompt = transcript.clone(); // grows every turn -> per-call cost rises
+        let prompt = transcript.clone();
         let in_est = estimator_chars(&prompt);
+
         match prompt_budgeted_metered(&pool, &estimator, &pricing, MAX_OUTPUT_TOK, &prompt, |p| async {
             agent.prompt(p).await.map_err(|e| anyhow::anyhow!(e))
         })
@@ -51,11 +44,13 @@ async fn main() -> anyhow::Result<()> {
                 println!("turn {turn:2}: ctx≈{in_est}b served  reserved=${:.5} actual=${:.5}",
                          reserved as f64 / 1e8, actual as f64 / 1e8);
             }
+
             Err(BudgetedError::Reserve(_)) => {
                 refused += 1;
                 println!("turn {turn:2}: ctx≈{in_est}b REFUSED (cap reached as context grew)");
-                break; // once the growing context can't be afforded, the rest won't be either
+                break;
             }
+
             Err(e) => return Err(anyhow::anyhow!(e.to_string())),
         }
         assert!(pool.invariant_holds());

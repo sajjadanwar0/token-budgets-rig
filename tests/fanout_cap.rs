@@ -1,11 +1,3 @@
-//! Offline, deterministic: many CONCURRENT sub-agents drawing from ONE shared
-//! BudgetPool can never push cumulative spend past the cap. No Rig, no key.
-//!
-//!   cargo test --test fanout_cap
-//!
-//! This is the machine-checkable runtime half of non-bypassability: the global
-//! cap holds across all sub-agents regardless of fan-out width.
-
 use token_budgets::BudgetPool;
 use token_budgets_rig::{default_estimator, prompt_budgeted_metered, usd_to_uc, BudgetedError, Pricing};
 
@@ -17,7 +9,7 @@ async fn concurrent_subagents_cannot_exceed_shared_cap() {
 
     let mut handles = Vec::new();
     for sub in 0..8u32 {
-        let pool = pool.clone(); // all 8 sub-agents share ONE budget
+        let pool = pool.clone(); 
         handles.push(tokio::spawn(async move {
             let est = default_estimator();
             let mut served = 0u64;
@@ -32,7 +24,7 @@ async fn concurrent_subagents_cannot_exceed_shared_cap() {
                     Err(BudgetedError::Reserve(_)) => {}
                     Err(e) => panic!("unexpected: {e}"),
                 }
-                // The global cap must hold at every moment, across all sub-agents.
+
                 assert!(pool.invariant_holds());
                 assert!(pool.available() <= cap);
             }
@@ -46,6 +38,7 @@ async fn concurrent_subagents_cannot_exceed_shared_cap() {
     }
 
     let spent = cap - pool.available();
+    
     assert!(spent <= cap, "cumulative spend across sub-agents exceeded the cap");
     assert!(total_served > 0);
     assert!(pool.invariant_holds());

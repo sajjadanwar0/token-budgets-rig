@@ -1,44 +1,25 @@
-//! Live N=1 demo: a coordinator delegates subtasks to a Rig agent under a hard
-//! session dollar cap. Requires an API key:
-//!
-//!   ANTHROPIC_API_KEY=sk-ant-... cargo run --example delegation_demo
-//!
-//! Every delegation goes through `prompt_budgeted_metered` against one shared
-//! `BudgetPool`. Once cumulative spend reaches the cap, further delegations are
-//! refused PRE-FLIGHT (BudgetedError::Reserve) and the session never overspends.
-//! The run also reports the over-reservation ratio (reserved / actual) -- the
-//! paper's headline cost metric -- measured on a real framework.
-//!
-//! RIG VERSION SURFACE: the lines tagged `// RIG:` are the only Rig-specific
-//! code. Pinned to rig-core 0.37 (imported as `rig_core`; the 0.36 `rig` alias
-//! was dropped). Confirm with `cargo doc -p rig-core --open`.
-
 use std::time::Instant;
 use token_budgets::BudgetPool;
 use token_budgets_rig::{default_estimator, prompt_budgeted_metered, usd_to_uc, BudgetedError, Pricing};
-
-// RIG: imports. ProviderClient provides `from_env`; CompletionClient provides `.agent()`.
 use rig_core::client::{CompletionClient, ProviderClient};
 use rig_core::completion::Prompt;
 use rig_core::providers::anthropic;
 
-const MODEL: &str = "claude-haiku-4-5"; // RIG: a model id your account can call
-const SESSION_CAP_USD: f64 = 0.05; // small enough that the cap binds within N_SUBTASKS
+const MODEL: &str = "claude-haiku-4-5";
+const SESSION_CAP_USD: f64 = 0.05; 
 const N_SUBTASKS: usize = 40;
-const MAX_OUTPUT_TOK: u64 = 2048; // worst-case output (estimator bytes*2 units) for a <=100-token answer
+const MAX_OUTPUT_TOK: u64 = 2048;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Claude Haiku 4.5 rate card, verified May 2026: $1 / $5 per 1M tok.
     let pricing = Pricing::per_million_usd(1.0, 5.0);
     let estimator = default_estimator();
 
-    // RIG: build the client + agent.
-    let client = anthropic::Client::from_env()?; // 0.37: returns Result
+    let client = anthropic::Client::from_env()?; 
     let agent = client
         .agent(MODEL)
         .preamble("You are a terse worker. Answer in one sentence.")
-        .max_tokens(100) // RIG: hard-bound output so the worst-case reservation is sound
+        .max_tokens(100) 
         .build();
 
     let subtasks: Vec<String> = (0..N_SUBTASKS)
@@ -53,7 +34,7 @@ async fn main() -> anyhow::Result<()> {
 
     for task in &subtasks {
         let res = prompt_budgeted_metered(&pool, &estimator, &pricing, MAX_OUTPUT_TOK, task, |p| async {
-            agent.prompt(p).await.map_err(|e| anyhow::anyhow!(e)) // RIG: the completion call
+            agent.prompt(p).await.map_err(|e| anyhow::anyhow!(e)) 
         })
             .await;
 
@@ -63,8 +44,8 @@ async fn main() -> anyhow::Result<()> {
                 total_reserved += reserved;
                 total_actual += actual;
             }
-            Err(BudgetedError::Reserve(_)) => refused += 1, // cap reached: refuse pre-flight
-            Err(BudgetedError::Commit(_)) => under_estimates += 1, // output exceeded reservation; bound max_tokens lower
+            Err(BudgetedError::Reserve(_)) => refused += 1,
+            Err(BudgetedError::Commit(_)) => under_estimates += 1, 
             Err(e) => return Err(anyhow::anyhow!(e.to_string())),
         }
         assert!(pool.invariant_holds(), "cap invariant violated");
@@ -76,8 +57,7 @@ async fn main() -> anyhow::Result<()> {
     } else {
         f64::NAN
     };
-    // What the full N-task workload would have cost unguarded (extrapolated from
-    // the served calls' mean actual cost) -- the overrun the cap prevented.
+    
     let projected_unguarded_uc = if served > 0 {
         (total_actual as f64 / served as f64) * N_SUBTASKS as f64
     } else {
@@ -93,5 +73,6 @@ async fn main() -> anyhow::Result<()> {
     println!("projected unguarded= ${:.5}  for all {N_SUBTASKS} tasks (would breach cap: {})",
              projected_unguarded_uc / 1e8, projected_unguarded_uc as u64 > cap);
     println!("CAP RESPECTED: {}  (spent_uc={spent_uc} <= cap_uc={cap})", spent_uc <= cap);
+    
     Ok(())
 }
