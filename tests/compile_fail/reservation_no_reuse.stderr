@@ -1,11 +1,11 @@
 error[E0382]: use of moved value: `r`
-   --> tests/compile_fail/reservation_no_reuse.rs:9:5
+   --> tests/compile_fail/reservation_no_reuse.rs:7:5
     |
-  7 |     let r = pool.reserve(100).unwrap();
+  5 |     let r = pool.reserve(100).unwrap();
     |         - move occurs because `r` has type `Reservation`, which does not implement the `Copy` trait
-  8 |     r.commit(50).unwrap(); // moves r
+  6 |     r.commit(50).unwrap();
     |       ---------- `r` moved due to this method call
-  9 |     r.commit(50).unwrap(); // use of moved value -> E0382
+  7 |     r.commit(50).unwrap();
     |     ^ value used here after move
     |
 note: `Reservation::commit` takes ownership of the receiver `self`, which moves `r`
