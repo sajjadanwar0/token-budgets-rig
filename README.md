@@ -136,8 +136,23 @@ point it at your copy:
 export RIG_DIR=/path/to/token-budgets-rig
 ```
 
-## License / status
+## Citation
 
-Early case-study crate (version `0.0.0`); the API is illustrative and may
-change. See the parent [`token-budgets`](https://github.com/sajjadanwar0/token-budgets)
-crate for the core affine budget types this builds on.
+```bibtex
+@misc{khan2026tokenbudgets,
+  title         = {Token Budgets: An Empirical Catalog of 63 LLM-Agent
+                   Budget-Overrun Incidents, with an Affine-Typed Rust
+                   Mitigation as a Case Study},
+  author        = {Khan, Sajjad},
+  year          = {2026},
+  eprint        = {2606.04056},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.SE},
+  doi           = {10.48550/arXiv.2606.04056},
+  url           = {https://arxiv.org/abs/2606.04056}
+}
+```
+
+## License
+
+Paper: CC BY 4.0 (arXiv). Code: see the repository `LICENSE` file.
